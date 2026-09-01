@@ -37,7 +37,8 @@
 
 - **A Smart Cricket Ball with Embedded IMU and Piezoelectric Sensors for Automated Ground Contact Detection**
   Indian Patent Application No. `202641061003` · Published in The Patent Office Journal, 22/05/2026
-  *Co-inventor, filed under RNS Institute of Technology*q
+  *Co-inventor, filed under RNS Institute of Technology*
+  
 
 ---
 
