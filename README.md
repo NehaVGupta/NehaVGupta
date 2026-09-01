@@ -20,14 +20,6 @@
 
 ---
 
-### 📊 GitHub Stats
-
-<p align="left">
-  <img src="https://github-readme-stats.vercel.app/api?username=NehaVGupta&show_icons=true&theme=default" alt="Neha's GitHub Stats" height="165"/>
-  <img src="https://github-readme-streak-stats.herokuapp.com/?user=NehaVGupta&theme=default" alt="Neha's GitHub Streak" height="165"/>
-</p>
-
----
 
 ### 📄 Patents
 
