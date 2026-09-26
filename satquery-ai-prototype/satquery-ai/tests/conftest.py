@@ -15,6 +15,12 @@ from app.main import app  # noqa: E402
 @pytest.fixture(scope="session")
 def client():
     c = TestClient(app)
+    registered = c.post("/api/auth/register", json={"full_name": "Test User", "email": "test.user@example.com",
+                                                     "password": "Test@1234", "confirm_password": "Test@1234"})
+    assert registered.status_code == 201, registered.text
+    logged_in = c.post("/api/auth/login", json={"email": "test.user@example.com", "password": "Test@1234"})
+    assert logged_in.status_code == 200, logged_in.text
+    c.headers.update({"x-csrf-token": c.cookies.get("satquery_csrf")})
     for d in ("urban", "before-after", "water"):
         assert c.post(f"/api/demo/load/{d}").status_code == 200
     return c

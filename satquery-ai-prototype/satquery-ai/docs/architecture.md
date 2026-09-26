@@ -47,8 +47,7 @@ image registration, and Lab-colour-space differencing for change detection. This
   stubs: inference, weights loading and registry selection still need to be implemented.
 
 The UI always labels this engine as **"Prototype inference · classical CV heuristics (not a trained
-model)"** — see `app/engines/demo.py::LABEL` — and the Architecture page lists exactly what is real vs.
-demo.
+model)"** — see `app/engines/demo.py::LABEL` — and the README lists what is real versus planned.
 
 ## Grounding & the "insufficient evidence" rule
 
@@ -100,7 +99,9 @@ migration path; both share the same evidence/analysis JSON shape.
 
 - Demo engines are classical CV, not trained deep networks; they work well on the bundled synthetic
   imagery and reasonably on clean real imagery, but are not validated against benchmark datasets.
-- No authentication/authorization layer (out of scope for a hackathon prototype; `models/db.py` includes
-  a `User`/`role` model as the extension point).
+- Authentication currently stores users and opaque sessions through the local JSON repository. It is
+  single-instance prototype storage; use a transactional shared database, rate limiting, and production
+  secret/cookie configuration before multi-worker or public deployment. Password reset email requires
+  SMTP settings.
 - SQLite/Postgres, Redis and MinIO are not required to run the prototype and are optional profiles in
   `docker-compose.yml`.

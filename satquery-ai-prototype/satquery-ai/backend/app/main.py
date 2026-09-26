@@ -1,18 +1,20 @@
 import logging
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import router
+from app.api.auth_routes import router as auth_router
+from app.api.routes import public_router, router
+from app.api.security import require_authenticated, require_csrf
 from app.config.settings import settings
 from app.utils.errors import UserError
 
 log = logging.getLogger("satquery")
 app = FastAPI(title="SatQuery AI API", version=settings.version, description="Evidence-grounded natural-language analysis of satellite imagery (SIH 2026 prototype).")
-app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["GET", "POST"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["GET", "POST"], allow_headers=["*"], allow_credentials=True)
 
 
 def _err(status, code, message):
@@ -35,7 +37,9 @@ async def unexpected(_: Request, e: Exception):
     return _err(500, "analysis_failed", "The analysis could not be completed. Please try again or use a different image.")
 
 
-app.include_router(router)
+app.include_router(auth_router)
+app.include_router(public_router)
+app.include_router(router, dependencies=[Depends(require_authenticated), Depends(require_csrf)])
 if settings.static_dir.exists():
     app.mount("/assets", StaticFiles(directory=settings.static_dir / "assets"), name="assets")
     app.mount("/samples", StaticFiles(directory=settings.static_dir / "samples"), name="samples")

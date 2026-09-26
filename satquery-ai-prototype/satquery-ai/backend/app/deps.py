@@ -2,6 +2,7 @@
 from app.config.settings import settings
 from app.engines.registry import ModelRegistry
 from app.services.cache_service import make_cache
+from app.services.auth_service import AuthService
 from app.services.change_detection_service import ChangeDetectionService
 from app.services.demo_service import DemoService
 from app.services.detection_service import DetectionService
@@ -14,6 +15,7 @@ from app.services.storage_service import LocalStorageService, S3StorageService
 
 storage = LocalStorageService(settings.data_dir) if settings.storage_backend == "local" else S3StorageService()
 repo = Repository(storage)
+auth = AuthService(repo)
 cache = make_cache(settings.redis_url)
 registry = ModelRegistry()
 images = ImageService(storage, repo)

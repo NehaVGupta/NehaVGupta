@@ -47,7 +47,7 @@ boxes, coordinates and confidence always shown alongside the text.
   step-by-step "How did SatQuery AI reach this answer?" trace.
 - **Grounding rule** — every analysis is validated (image quality, evidence count, class support) before
   a confidence is assigned; low confidence always yields the fixed insufficient-evidence sentence.
-- **Judge Demo Mode** — a scripted, clickable 4-minute walkthrough of every capability.
+- **Dedicated Demo workspace** — bundled synthetic datasets and a scripted, clickable walkthrough.
 - **GeoTIFF support** — real CRS/bounds/transform/band extraction via Rasterio, graceful pixel-coordinate
   fallback for plain images.
 - **Downloadable report & GeoJSON export** for any answer with spatial evidence.
@@ -57,14 +57,39 @@ boxes, coordinates and confidence always shown alongside the text.
 ## Architecture
 
 ```
-User → SatQuery AI UI (React/Leaflet) → FastAPI
-     → Query Understanding → Agentic Model Router
-     → Specialist Models (object detection · segmentation · change detection · image understanding)
-     → Evidence Aggregation → Validation/Confidence → Grounded Response → Visual Evidence + Map
+Browser (React + Leaflet)
+  → FastAPI request validation and image metadata
+  → Query router (intent, modality, and follow-up context)
+  → Orchestrator plan and specialist engine registry
+  → Detection / segmentation / change analysis
+  → Evidence extraction and confidence validation
+  → Grounded response and map visualizations
 ```
 
-Full detail, including exactly what is a trained model vs. classical-CV prototype inference, is in
-[`docs/architecture.md`](docs/architecture.md).
+The query router classifies a question and whether it needs one image, an image pair, or existing
+analysis context. The orchestrator turns that intent into a plan and calls the relevant engine through
+shared interfaces in `backend/app/engines/base.py`. The registry currently selects classical computer-
+vision demo engines by default; model adapters are extension points, not active trained models.
+
+| Capability | Current prototype implementation | Planned adapter |
+|---|---|---|
+| Object detection | OpenCV connected components with color, shape, and contrast heuristics | YOLO or Faster R-CNN |
+| Land-cover segmentation | HSV/ExG color-space masks | U-Net or SegFormer |
+| Change detection | Phase-correlation registration and Lab-space differencing | Siamese U-Net or a change-detection transformer |
+| Scene understanding | Template response composed from measured counts and coverage | GeoChat-style remote-sensing vision-language model |
+| Optical/SAR fusion | Not implemented | Optical/SAR fusion model |
+
+The evidence service checks image quality, supported classes, and evidence counts before assigning
+confidence. The response layer uses templates over structured evidence rather than asking a language
+model to freely describe the image. Low-confidence results are explicitly marked as insufficient
+evidence. Follow-up questions can reuse a previous analysis record and its evidence without rerunning
+the specialist engine.
+
+Analysis records and uploaded files use the repository/storage abstractions: local JSON and filesystem
+storage are the defaults, while Redis and S3-compatible storage are optional integrations. The SQLAlchemy
+PostGIS schema is a production migration path and is not used by the prototype at runtime.
+
+For implementation details and known limitations, see [`docs/architecture.md`](docs/architecture.md).
 
 ## Tech stack
 
@@ -96,15 +121,18 @@ npm install
 npm run dev     # http://localhost:5173, proxies /api to :8000
 ```
 
-Open `http://localhost:5173`, click **Demo Mode**, and follow [`docs/demo-script.md`](docs/demo-script.md).
+Open `http://localhost:5173`, create an account or sign in, then choose **Demo** for bundled sample
+datasets or **Analysis** to upload your own imagery. Follow [`docs/demo-script.md`](docs/demo-script.md)
+for the guided walkthrough.
 
 The synthetic demo dataset is generated on first use (or run
 `python -m app.services.demo_data` inside `backend/` to pre-generate it).
 
 ### Environment variables
 
-See [`.env.example`](.env.example) — every variable has a working default; nothing must be set to run
-the prototype locally.
+See [`.env.example`](.env.example). SMTP settings are optional for local development; configure
+`SMTP_HOST`, `SMTP_FROM`, and related SMTP variables to deliver password reset links. Set
+`AUTH_COOKIE_SECURE=true` behind HTTPS and set `AUTH_FRONTEND_URL` to the public frontend origin.
 
 ## Docker
 
@@ -123,11 +151,16 @@ docker compose --profile full up --build
 ## Demo walkthrough
 
 See [`docs/demo-script.md`](docs/demo-script.md) for the scripted ~4-minute flow, which is also available
-as clickable steps inside the app (Analysis workspace → "Show judge demo script").
+as clickable steps inside the app (Demo workspace → "Show demo walkthrough").
 
 ## API
 
 See [`docs/api.md`](docs/api.md) for the full endpoint reference and response shapes.
+
+Authentication uses scrypt password hashes, opaque server-side sessions in HttpOnly cookies, CSRF
+checks on state-changing authenticated requests, and single-use hashed reset tokens. Accounts and
+sessions use the existing JSON repository, so this implementation is suitable for the current
+single-instance prototype, not a multi-worker production deployment.
 
 ## What is real vs. prototype
 
@@ -149,7 +182,7 @@ Full breakdown: [`docs/architecture.md`](docs/architecture.md#what-is-real-in-th
 ## Testing
 
 ```bash
-# Backend (21 tests: routing, validation, all three analyses, follow-ups, errors, security)
+# Backend (28 tests: authentication, routing, analyses, follow-ups, errors, security)
 cd backend && pip install -r requirements.txt pytest httpx && cd .. && pytest tests -q
 
 # Frontend (unit tests for confidence tiers and coordinate math)
@@ -160,7 +193,10 @@ cd frontend && npm test
 
 - Demo engines are unvalidated heuristics, not benchmarked trained models — confidence scores are
   informative but not calibrated probabilities.
-- No authentication layer (out of scope for the hackathon prototype).
+- User and session records currently use local JSON storage. Move them to a transactional shared
+  database and add login rate limiting before running multiple backend workers or deploying publicly.
+- Password reset email delivery requires SMTP configuration; without it the API keeps the response
+  generic but cannot deliver the link.
 - PostgreSQL/PostGIS, Redis and MinIO are optional; the prototype defaults to local JSON storage and an
   in-memory cache so it runs with zero external services.
 - Synthetic demo imagery is illustrative only, and never presented as real satellite data.

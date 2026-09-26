@@ -14,10 +14,14 @@ export default function Home() {
           <p className="font-mono text-xs uppercase tracking-[0.16em] text-signal">Geospatial analysis workspace</p>
           <p className="mt-1 text-sm text-mist-400">Satellite imagery, made queryable.</p>
         </div>
-        <span className="inline-flex items-center gap-2 rounded border border-ink-600 px-3 py-1.5 text-xs text-mist-300">
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-flag" />
-          Prototype environment
-        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link to="/login" className="text-sm text-mist-300 hover:text-mist-100">Sign in</Link>
+          <Link to="/register" className="btn-ghost !px-3 !py-1.5">Create account</Link>
+          <span className="inline-flex items-center gap-2 rounded border border-ink-600 px-3 py-1.5 text-xs text-mist-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-flag" />
+            Prototype environment
+          </span>
+        </div>
       </div>
 
       <section className="grid items-center gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
@@ -27,7 +31,7 @@ export default function Home() {
           <p className="mt-5 max-w-lg text-base leading-7 text-mist-300">Run focused image analysis, inspect the visual evidence, and ask questions in plain language. Results stay connected to the imagery they came from.</p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link to="/analysis" className="btn-primary">Open analysis</Link>
-            <Link to="/analysis?demo=1" className="btn-ghost">Explore sample scene</Link>
+            <Link to="/demo" className="btn-ghost">Explore sample scene</Link>
           </div>
           <p className="mt-5 text-xs text-mist-500">Upload an image or start with the included urban sample.</p>
         </div>
@@ -42,7 +46,7 @@ export default function Home() {
               <p className="text-sm font-medium text-mist-100">Urban overview</p>
               <p className="mt-0.5 text-xs text-mist-500">Included sample imagery</p>
             </div>
-            <Link to="/analysis?demo=1" className="text-sm text-signal hover:underline">Open sample <span aria-hidden="true">-&gt;</span></Link>
+            <Link to="/demo" className="text-sm text-signal hover:underline">Open sample <span aria-hidden="true">-&gt;</span></Link>
           </figcaption>
         </figure>
       </section>
@@ -53,7 +57,6 @@ export default function Home() {
             <p className="font-mono text-xs uppercase tracking-[0.16em] text-mist-500">Available in this prototype</p>
             <h2 id="capabilities-title" className="mt-2 font-display text-2xl font-medium">Analysis tools</h2>
           </div>
-          <Link to="/architecture" className="text-sm text-mist-300 hover:text-mist-100">View system architecture</Link>
         </div>
         <div className="grid gap-0 sm:grid-cols-3">
           {CAPABILITIES.map(([number, title, description]) => (

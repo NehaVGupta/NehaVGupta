@@ -14,8 +14,12 @@ try:
     class User(Base):
         __tablename__ = "users"
         id = Column(Integer, primary_key=True)
-        email = Column(String, unique=True)
+        name = Column(String(120), nullable=False)
+        email = Column(String(254), unique=True, nullable=False, index=True)
+        password_hash = Column(String(255), nullable=False)
         role = Column(String, default="analyst")
+        created_at = Column(DateTime, server_default=func.now())
+        updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     class Dataset(Base):
         __tablename__ = "datasets"

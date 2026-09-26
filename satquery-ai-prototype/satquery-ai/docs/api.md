@@ -1,11 +1,19 @@
 # SatQuery AI — API reference
 
 Base URL: `http://localhost:8000/api`. All error responses are `{"error": {"code": "...", "message": "..."}}`
-with an appropriate HTTP status — the API never returns a raw Python traceback.
+with an appropriate HTTP status — the API never returns a raw Python traceback. Except for `/health`
+and `/auth/*`, endpoints require a valid session cookie. State-changing authenticated requests also
+require the matching `satquery_csrf` cookie and `X-CSRF-Token` header.
 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/health` | Liveness + active engine/cache/storage info |
+| POST | `/auth/register` | Create an account; requires `full_name`, `email`, `password`, `confirm_password` |
+| POST | `/auth/login` | Verify credentials, issue HttpOnly session cookie; optional `remember_me` |
+| POST | `/auth/logout` | Revoke current session and clear auth cookies |
+| GET | `/auth/me` | Current authenticated user's public profile |
+| POST | `/auth/forgot-password` | Request a reset link; always returns a generic confirmation |
+| POST | `/auth/reset-password` | Redeem a one-time token and set a new password |
 | POST | `/upload` (multipart `file`) | Upload PNG/JPG/GeoTIFF, returns image metadata |
 | GET | `/image/{id}` | Raw PNG bytes of a stored image |
 | GET | `/image/{id}/meta` | Image metadata (dimensions, geo, quality) |
@@ -22,6 +30,11 @@ with an appropriate HTTP status — the API never returns a raw Python traceback
 | GET | `/history?limit=` | Recent analyses (dashboard) |
 | GET | `/stats` | Dashboard counters |
 | GET | `/models` | Model registry + live latency/error metrics |
+
+Passwords require at least 8 characters, uppercase and lowercase letters, a number, and a special
+character. Password reset links expire after `AUTH_RESET_TOKEN_MINUTES` and are invalidated after use.
+Configure SMTP in `.env` to deliver them. Session cookies are HttpOnly, SameSite=Lax, and should be
+Secure behind HTTPS (`AUTH_COOKIE_SECURE=true`).
 
 ## `AnalysisRecord` shape (abridged)
 

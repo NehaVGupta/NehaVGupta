@@ -8,7 +8,7 @@ export default function About() {
   ]
   return (
     <div className="mx-auto max-w-[900px] space-y-10 px-4 py-12">
-      <div><h1 className="font-display text-3xl">About SatQuery AI</h1><p className="mt-3 text-mist-300">SatQuery AI is Team Cipher’s prototype for SIH26167 (Space Technology, Software). It is a working, evidence-grounded prototype — not a claim that trained deep-learning models are running behind it. See the Architecture page for exactly what is real.</p></div>
+      <div><h1 className="font-display text-3xl">About SatQuery AI</h1><p className="mt-3 text-mist-300">SatQuery AI is Team Cipher’s prototype for SIH26167 (Space Technology, Software). It is a working, evidence-grounded prototype — not a claim that trained deep-learning models are running behind it. The project README documents the active pipeline and what is real versus planned.</p></div>
       <div>
         <h2 className="font-display text-xl">Research alignment</h2>
         <ul className="mt-4 space-y-3">

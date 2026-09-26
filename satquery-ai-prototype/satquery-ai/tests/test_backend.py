@@ -110,6 +110,10 @@ def test_history_report_geojson(client):
     assert "<h1>" in client.get(f"/api/report/{r['id']}").text
     assert client.get(f"/api/analysis/{r['id']}/geojson").json()["type"] == "FeatureCollection"
     assert client.get("/api/history").json() and client.get("/api/stats").json()["queries_executed"] > 0
+    real_history = client.get("/api/history?include_demo=false").json()
+    assert "demo-urban-a" in r["image_ids"].values()
+    assert all(item["id"] != r["id"] for item in real_history)
+    assert client.get("/api/stats?include_demo=false").json()["queries_executed"] == len(real_history)
     assert any(m["status"] == "planned" for m in client.get("/api/models").json()["models"])
 
 

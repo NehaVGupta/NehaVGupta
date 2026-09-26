@@ -1,11 +1,12 @@
 # SatQuery AI — 4-minute judge demo script
 
 Prerequisites: backend running on `:8000`, frontend on `:5173` (or the combined Docker Compose stack).
-Open the app and click **Demo Mode** in the navbar, or go straight to `/analysis?demo=1`.
+Open the app, sign in to the prototype gate, and choose **Demo** in the workspace navigation, or go
+straight to `/demo`.
 
 ## 1. Object detection & explainability (60s)
 
-1. Demo Mode auto-loads the **Urban block** dataset.
+1. The Demo workspace auto-loads the **Urban block** dataset.
 2. Ask: **"How many buildings are visible?"** → 12 buildings, boxes drawn, confidence badge.
 3. Ask: **"Which detected regions have low confidence?"** → follow-up using conversation context, no
    new model call — point out the pipeline trace ("How did SatQuery AI reach this answer?").

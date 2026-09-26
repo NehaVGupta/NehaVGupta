@@ -8,6 +8,7 @@ const newSession = () => 's-' + Math.random().toString(36).slice(2, 12)
 /** Workspace state: images, conversation, selected analysis, layer settings. */
 export function useAnalysis() {
   const session = useRef(newSession())
+  const operation = useRef(0)
   const [dataset, setDataset] = useState(null)
   const [imageA, setImageA] = useState(null)
   const [imageB, setImageB] = useState(null)
@@ -18,29 +19,43 @@ export function useAnalysis() {
   const [mode, setMode] = useState('map')
   const [layers, setLayers] = useState({ detections: true, masks: true, change: true, opacity: 0.85 })
   const [notice, setNotice] = useState(null)
+  const [datasetLoading, setDatasetLoading] = useState(false)
   const up = useUpload()
   const q = useQuery()
 
-  const reset = useCallback(() => { session.current = newSession(); setMessages([]); setSelected(null); setHighlightId(null); setMode('map'); setView('A') }, [])
+  const reset = useCallback(() => { ++operation.current; session.current = newSession(); setMessages([]); setSelected(null); setHighlightId(null); setMode('map'); setView('A') }, [])
 
   const loadDataset = useCallback(async (name) => {
+    const currentOperation = ++operation.current
     setNotice(null)
+    setDatasetLoading(true)
     try {
       const r = await api.demoLoad(name)
+      if (currentOperation !== operation.current) return null
       reset()
       setDataset(r.dataset); setImageA(r.images[0]); setImageB(r.images[1] || null)
       return r
-    } catch (e) { setNotice(e.message); return null }
+    } catch (e) {
+      if (currentOperation === operation.current) setNotice(e.message)
+      return null
+    } finally {
+      if (currentOperation === operation.current) setDatasetLoading(false)
+    }
   }, [reset])
 
   const setImage = useCallback(async (role, file) => {
+    const currentOperation = ++operation.current
     const rec = await up.upload(file)
     if (!rec) return
+    if (currentOperation !== operation.current) return
     setDataset(null)
     if (role === 'a') { reset(); setImageA(rec) } else setImageB(rec)
   }, [up, reset])
 
-  const clearImage = useCallback((role) => { if (role === 'a') { setImageA(null); setImageB(null); setDataset(null); reset() } else setImageB(null) }, [reset])
+  const clearImage = useCallback((role) => {
+    ++operation.current
+    if (role === 'a') { setImageA(null); setImageB(null); setDataset(null); reset() } else setImageB(null)
+  }, [reset])
 
   const select = useCallback((rec) => {
     setSelected(rec); setHighlightId(null)
@@ -50,10 +65,12 @@ export function useAnalysis() {
 
   const send = useCallback(async (text, a = imageA, b = imageB) => {
     if (!text.trim()) return null
-    if (!a) { setNotice('Upload an image or load a demo dataset first.'); return null }
+    if (!a) { setNotice('Choose an image before asking a question.'); return null }
+    const currentOperation = operation.current
     setNotice(null)
     setMessages((m) => [...m, { role: 'user', text }])
     const rec = await q.ask({ query: text, image_id: a.id, image_b_id: b?.id, session_id: session.current })
+    if (currentOperation !== operation.current) return null
     if (!rec) {
       setMessages((m) => [...m, { role: 'assistant', error: true, text: 'I could not complete that analysis. Please try again.' }])
       return null
@@ -76,7 +93,7 @@ export function useAnalysis() {
 
   return {
     dataset, imageA, imageB, messages, selected, highlightId, view, mode, layers, notice, setNotice,
-    loading: q.loading, uploading: up.uploading, uploadError: up.error, queryError: q.error,
+    loading: q.loading, datasetLoading, uploading: up.uploading, uploadError: up.error, queryError: q.error,
     loadDataset, setImage, clearImage, send, select, openAnalysis, setHighlightId, setView, setMode,
     setLayers: (p) => setLayers((l) => ({ ...l, ...p })),
   }

@@ -275,6 +275,7 @@ class Orchestrator:
         t = time.perf_counter()
         quality = min(A["quality"]["score"], B["quality"]["score"] if B else 1.0)
         synthetic = A["synthetic"] and (B["synthetic"] if B else True)
+        includes_demo_data = A["synthetic"] or (B["synthetic"] if B else False)
         if val is None and status is None:
             val = evs.validate(ev, quality, synthetic)
         tr.add("Validation & confidence", (f"status = {val['status']}; confidence = {pct(val['confidence'])}; " + " ".join(val["reasons"])).strip() if val else "no evidence to validate", (time.perf_counter() - t) * 1000)
@@ -299,7 +300,7 @@ class Orchestrator:
         rec = {"id": uuid.uuid4().hex[:12], "created": datetime.now(timezone.utc).isoformat(), "query": query, "intent": intent.dict(), "answer": answer,
                "confidence": conf_final, "confidence_tier": tier(conf_final) if conf_final is not None else "insufficient", "status": st, "evidence": ev,
                "visualization": viz, "pipeline": tr.steps, "image_ids": {"a": A["id"], "b": B["id"] if B else None},
-               "engine_label": ev["engine"]["label"], "is_demo": bool(ev["engine"].get("is_demo", True)), "disclaimer": PRELIMINARY,
+               "engine_label": ev["engine"]["label"], "is_demo": bool(ev["engine"].get("is_demo", True)), "includes_demo_data": includes_demo_data, "disclaimer": PRELIMINARY,
                "warnings": warnings, "root_id": None, "suggestions": SUGGEST.get(intent.intent if intent.intent.startswith("followup") else ev["analysis_type"] if ev["analysis_type"] in SUGGEST else intent.intent, []),
                "validation": val}
         rec.pop("validation")
@@ -308,7 +309,7 @@ class Orchestrator:
         detected = ev["count"] if ev["analysis_type"] in ("object_detection", "building_change") and not intent.followup else 0
         changed = ev["stats"].get("significant_regions", 0) if ev["analysis_type"] == "change_detection" and not intent.followup else 0
         self.repo.put("analysis_index", rec["id"], {"id": rec["id"], "created": rec["created"], "query": query, "intent": intent.intent, "answer": answer, "confidence": conf_final,
-                                                    "status": st, "image_ids": rec["image_ids"], "objects_detected": detected, "changes_detected": changed, "is_demo": rec["is_demo"]})
+                                                    "status": st, "image_ids": rec["image_ids"], "objects_detected": detected, "changes_detected": changed, "is_demo": rec["is_demo"], "includes_demo_data": includes_demo_data})
         if session_id:
             self.cache.set(f"session:{session_id}", {"last_analysis_id": rec["id"]})
         return rec

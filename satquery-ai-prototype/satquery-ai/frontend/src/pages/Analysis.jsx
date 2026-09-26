@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../services/api'
 import { useAnalysis } from '../hooks/useAnalysis'
@@ -19,7 +19,7 @@ const TABS = [['map', 'Map / detections'], ['segment', 'Segmentation'], ['change
 const SEG_CLASSES = ['water', 'vegetation', 'built_up', 'roads', 'bare_soil']
 const DEFAULT_SUGGEST = ['How many buildings are visible?', 'Show me the water bodies.', 'What percentage of the image is vegetation?', 'Explain this image.']
 
-export default function AnalysisPage() {
+export default function AnalysisPage({ demoMode = false }) {
   const [params, setParams] = useSearchParams()
   const A = useAnalysis()
   const [datasets, setDatasets] = useState([])
@@ -29,15 +29,21 @@ export default function AnalysisPage() {
   const [segLoading, setSegLoading] = useState(false)
   const [segResult, setSegResult] = useState(null)
 
-  useEffect(() => { api.demoDatasets().then(setDatasets).catch(() => setDatasets([])) }, [])
+  useEffect(() => {
+    if (!demoMode) return
+    const openId = params.get('open')
+    api.demoDatasets().then((available) => {
+      setDatasets(available)
+      if (!openId) {
+        const initial = available.find((dataset) => dataset.id === 'urban') || available[0]
+        if (initial) A.loadDataset(initial.id)
+      }
+    }).catch(() => setDatasets([]))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const open = params.get('open')
     if (open) { A.openAnalysis(open); setParams({}, { replace: true }); return }
-    if (params.get('demo') === '1') {
-      A.loadDataset('urban').then(() => { if (params.get('guide') === '1') setShowGuide(true) })
-      setParams({}, { replace: true })
-    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const record = A.selected
@@ -83,19 +89,30 @@ export default function AnalysisPage() {
   const highlightIds = record?.evidence?.focus_ids || A.highlightId ? [...(record?.evidence?.focus_ids || []), A.highlightId].filter(Boolean) : []
 
   return (
-    <div className="flex h-[calc(100vh-56px)] flex-col lg:flex-row">
+    <div className="flex h-[calc(100vh-104px)] flex-col lg:flex-row md:h-screen">
       <aside className="w-full shrink-0 space-y-5 overflow-y-auto border-b border-ink-600 p-4 lg:w-72 lg:border-b-0 lg:border-r">
-        <UploadPanel label="Image A (required)" image={A.imageA} onFile={(f) => A.setImage('a', f)} onClear={() => A.clearImage('a')} uploading={A.uploading} />
-        <UploadPanel label="Image B (for change detection)" image={A.imageB} onFile={(f) => A.setImage('b', f)} onClear={() => A.clearImage('b')} uploading={A.uploading} hint="Optional — same scene, later date" />
-        <DatasetSelector datasets={datasets} active={A.dataset?.id} onLoad={A.loadDataset} busy={A.loading} />
-        <MetadataPanel image={A.imageA} />
+        <div className="border-b border-ink-600 pb-3">
+          <p className="text-sm font-medium">{demoMode ? 'Demo workspace' : 'Image workspace'}</p>
+          <p className="mt-1 text-xs text-mist-500">{demoMode ? 'Bundled sample datasets only.' : 'Upload your own imagery. Sample data is in Demo.'}</p>
+        </div>
+        {demoMode ? (
+          <DatasetSelector datasets={datasets} active={A.dataset?.id} onLoad={A.loadDataset} busy={A.datasetLoading} />
+        ) : (
+          <>
+            <UploadPanel label="Image A (required)" image={A.imageA} onFile={(f) => A.setImage('a', f)} onClear={() => A.clearImage('a')} uploading={A.uploading} />
+            <UploadPanel label="Image B (for change detection)" image={A.imageB} onFile={(f) => A.setImage('b', f)} onClear={() => A.clearImage('b')} uploading={A.uploading} hint="Optional — same scene, later date" />
+          </>
+        )}
+        {A.imageA && <MetadataPanel image={A.imageA} />}
         {A.imageB && <MetadataPanel image={A.imageB} title="Image B metadata" />}
         <div className="space-y-2">
           <div className="text-sm font-medium">Layer opacity</div>
           <input type="range" min="0.2" max="1" step="0.05" value={A.layers.opacity} onChange={(e) => A.setLayers({ opacity: +e.target.value })} className="w-full accent-signal" />
         </div>
-        <button className="text-xs text-signal hover:underline" onClick={() => setShowGuide((s) => !s)}>{showGuide ? 'Hide' : 'Show'} judge demo script</button>
-        {showGuide && <DemoGuide current={guideStep} onRun={runDemoStep} onClose={() => setShowGuide(false)} busy={A.loading} />}
+        {demoMode && <>
+          <button className="text-xs text-signal hover:underline" onClick={() => setShowGuide((s) => !s)}>{showGuide ? 'Hide' : 'Show'} demo walkthrough</button>
+          {showGuide && <DemoGuide current={guideStep} onRun={runDemoStep} onClose={() => setShowGuide(false)} busy={A.loading} />}
+        </>}
       </aside>
 
       <section className="flex min-h-[60vh] flex-1 flex-col border-b border-ink-600 lg:border-b-0 lg:border-r">
@@ -115,7 +132,7 @@ export default function AnalysisPage() {
           ) : activeTab === 'dashboard' ? (
             <div className="h-full overflow-y-auto"><EvidencePanel record={record} highlightId={A.highlightId} onHighlight={A.setHighlightId} /></div>
           ) : (
-            <MapViewer image={A.imageA} imageB={A.imageB} view={A.view}>
+            <MapViewer image={A.imageA} imageB={A.imageB} view={A.view} emptyLabel={demoMode ? 'Select a sample dataset to begin' : 'Upload an image to begin'}>
               {activeTab === 'map' && viz?.boxes?.length > 0 && <DetectionOverlay boxes={viz.boxes} itemsById={Object.fromEntries((record.evidence.items || []).map((i) => [i.id, i]))} highlightIds={highlightIds} focusId={A.highlightId} onSelect={A.setHighlightId} />}
               {activeTab === 'map' && viz?.change_regions?.length > 0 && <ChangeOverlay maskPng={viz.change_mask_png} regions={viz.change_regions} opacity={A.layers.opacity} highlightIds={highlightIds} focusId={A.highlightId} onSelect={A.setHighlightId} />}
               {activeTab === 'segment' && (

@@ -6,7 +6,7 @@ import { formatGeo, pixelToGeo } from '../utils/coordinates'
 export const MapCtx = createContext(null)
 
 /** Image-space Leaflet map (CRS.Simple). Overlay components render as children and use MapCtx. */
-export default function MapViewer({ image, imageB, view = 'A', children }) {
+export default function MapViewer({ image, imageB, view = 'A', children, emptyLabel = 'Upload an image to begin' }) {
   const el = useRef()
   const base = useRef()
   const [map, setMap] = useState(null)
@@ -35,7 +35,7 @@ export default function MapViewer({ image, imageB, view = 'A', children }) {
   return (
     <div className="relative h-full w-full">
       <div ref={el} className="h-full w-full" aria-label="Interactive imagery viewer" />
-      {!shown && <div className="pointer-events-none absolute inset-0 flex items-center justify-center graticule text-sm text-mist-500">Upload an image or load a demo dataset to begin</div>}
+      {!shown && <div className="pointer-events-none absolute inset-0 flex items-center justify-center graticule text-sm text-mist-500">{emptyLabel}</div>}
       {map && shown && <MapCtx.Provider value={{ map, h: shown.height, w: shown.width, image: shown }}>{children}</MapCtx.Provider>}
       {shown && (
         <div className="pointer-events-none absolute bottom-2 left-2 z-[500] rounded bg-ink-950/80 px-2 py-1 font-mono text-[11px] text-mist-300">
