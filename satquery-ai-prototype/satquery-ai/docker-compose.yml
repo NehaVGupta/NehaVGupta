@@ -1,0 +1,52 @@
+# Minimum: frontend + backend. Postgres/Redis/MinIO are optional extension points (not wired into
+# the prototype's runtime by default — it uses local JSON storage and an in-memory cache).
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports: ["8000:8000"]
+    environment:
+      - SATQUERY_CORS_ORIGINS=http://localhost:5173,http://localhost:80,http://localhost
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - satquery_data:/data
+    depends_on: [redis]
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ""
+    ports: ["5173:80"]
+    depends_on: [backend]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  # --- Optional, for the production-ready path (see docs/architecture.md) ---
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    environment:
+      POSTGRES_DB: satquery
+      POSTGRES_USER: satquery
+      POSTGRES_PASSWORD: satquery
+    ports: ["5432:5432"]
+    volumes: [pg_data:/var/lib/postgresql/data]
+    profiles: ["full"]
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: satquery
+      MINIO_ROOT_PASSWORD: satquery123
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [minio_data:/data]
+    profiles: ["full"]
+
+volumes:
+  satquery_data:
+  pg_data:
+  minio_data:

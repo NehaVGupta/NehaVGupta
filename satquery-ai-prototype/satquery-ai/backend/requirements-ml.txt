@@ -1,0 +1,11 @@
+# OPTIONAL — real-model integration (NOT installed by default; large downloads)
+torch
+torchvision
+transformers
+ultralytics        # YOLO
+segmentation-models-pytorch   # U-Net / Siamese variants
+geopandas
+sqlalchemy
+geoalchemy2
+psycopg[binary]
+boto3              # S3 / MinIO storage adapter
