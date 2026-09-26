@@ -24,7 +24,7 @@ export default function Navbar() {
             <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => `rounded-md px-3 py-1.5 text-sm ${isActive ? 'bg-ink-700 text-mist-100' : 'text-mist-300 hover:text-mist-100'}`}>{label}</NavLink>
           ))}
         </nav>
-        <button className="btn-primary !py-1.5" onClick={() => nav('/analysis?demo=1')}>Demo Mode</button>
+        <button className="btn-primary !py-1.5" onClick={() => nav('/analysis')}>Open analysis</button>
       </div>
     </header>
   )
